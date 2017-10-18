@@ -3,9 +3,10 @@ CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
-SOURCES += main.cpp \
-    diagonal_matrix.cpp
+SOURCES += src/main.cpp \
+    src/diagonal_matrix.cpp
 
 HEADERS += \
-    diagonal_matrix.h
+    src/diagonal_matrix.h \
+    src/cpp_headers.h
 
