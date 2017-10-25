@@ -1,5 +1,4 @@
 #include "cpp_headers.h"
-#include "diagonal_matrix.h"
 #include "diff_scheme_solver.h"
 
 int main(int argc, char *argv [])
@@ -25,8 +24,13 @@ int main(int argc, char *argv [])
   diff_scheme_solver solver;
 
   solver.init (n, m);
-  for (int i = 0; i < 5; i++)
-    solver.print_residual (0);
+  solver.print_H ();
+  solver.print_V ();
+  solver.build_first_system ();
+  solver.solve_first_system ();
+  solver.update_layer ();
+  solver.print_H ();
+  solver.print_residual (1);
 
   return 0;
 }

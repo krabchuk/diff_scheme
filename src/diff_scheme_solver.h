@@ -46,6 +46,13 @@ public:
   void update_layer ();
 
   void print_residual (int iter);
+
+  void solve_first_system ();
+
+  void solve_system ();
+
+  void print_H ();
+  void print_V ();
 };
 
 #endif // DIFF_SCHEME_SOLVER_H

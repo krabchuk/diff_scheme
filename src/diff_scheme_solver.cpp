@@ -25,7 +25,10 @@ diff_scheme_solver::~diff_scheme_solver ()
 double diff_scheme_solver::ro_0 (double x)
 {
   if (x < min_x || x > max_x)
-    printf ("ALARM! x = %e\n", x);
+    {
+      printf ("ALARM! x = %e\n", x);
+      return 0;
+    }
 
   return cos (x * M_PI / 10) + 1.5;
 }
@@ -33,7 +36,10 @@ double diff_scheme_solver::ro_0 (double x)
 double diff_scheme_solver::u_0 (double x)
 {
   if (x < min_x || x > max_x)
-    printf ("ALARM! x = %e\n", x);
+    {
+      printf ("ALARM! x = %e\n", x);
+      return 0;
+    }
 
   if (fabs (x - min_x) < MIN_FOR_DIVISION || fabs (x - max_x) < MIN_FOR_DIVISION)
     return 0;
@@ -68,29 +74,30 @@ void diff_scheme_solver::init (int n_arg, int m_arg)
   tau = (max_t - min_t) / n;
   gama = h / tau;
 
-  H_current.reserve (m);
-  H_next.reserve (m);
+  H_current.resize (m);
+  H_next.resize (m);
 
-  V_current.reserve (m + 1);
-  V_next.reserve (m + 1);
 
-  left.reserve (m);
-  mid.reserve (m);
-  right.reserve (m);
-  rhs.reserve (m);
+  V_current.resize (m + 1);
+  V_next.resize (m + 1);
+
+  left.resize (m);
+  mid.resize (m);
+  right.resize (m);
+  rhs.resize (m);
 
   // init first layer
-  for (int i = 0; i < m; i++)
+  for (int i = 0; i < m; ++i)
     {
-      H_current.push_back (ro_0 (min_x + h / 2 + i * h));
-      V_current.push_back (u_0 (min_x + i * h));
+      H_current[i] = ro_0 (min_x + h / 2 + i * h);
+      V_current[i] = u_0 (min_x + i * h);
     }
-  V_current.push_back (0);
+  V_current[m] = 0;
 }
 
 void diff_scheme_solver::update_layer ()
 {
-  for (int i = 0; i < m; i++)
+  for (int i = 0; i < m; ++i)
     {
       H_current[i] = H_next[i];
       V_current[i] = V_next[i];
@@ -100,7 +107,14 @@ void diff_scheme_solver::update_layer ()
 
 void diff_scheme_solver::build_first_system ()
 {
+  for (int i = 0; i < m; ++i)
+    {
+      left[i] = -0.5 * (V_current[i] + fabs (V_current[i]));
+      mid[i] = gama + 0.5 * (V_current[i + 1] + fabs (V_current[i + 1]) - V_current[i] + fabs (V_current[i]));
+      right[i] = 0.5 * (V_current[i + 1] - fabs (V_current[i + 1]));
 
+      rhs[i] = gama * H_current[i];
+    }
 }
 
 void diff_scheme_solver::print_residual (int iter)
@@ -110,7 +124,7 @@ void diff_scheme_solver::print_residual (int iter)
   double residual_H = 0;
   double residual_V = 0;
 
-  for (int i = 0; i < m; i++)
+  for (int i = 0; i < m; ++i)
     {
       residual_H += (H_current[i] - ro (t, min_x + h / 2 + i * h)) *
                     (H_current[i] - ro (t, min_x + h / 2 + i * h));
@@ -130,7 +144,7 @@ void diff_scheme_solver::solve_system ()
   // Solution appear in rhs
 
   // Forward
-  for (int i = 0; i < m - 1; i++)
+  for (int i = 0; i < m - 1; ++i)
     {
       right[i] /= mid[i];
       rhs[i] /= mid[i];
@@ -141,17 +155,39 @@ void diff_scheme_solver::solve_system ()
 
   // Back
   rhs[m - 1] /= mid[m - 1];
-  for (int i = m - 2; i >= 0; i--)
+  for (int i = m - 2; i >= 0; --i)
     {
       rhs[i] -= rhs[i + 1] * right[i];
     }
 }
 
+void diff_scheme_solver::solve_first_system ()
+{
+  solve_system ();
 
+  for (int i = 0; i < m; ++i)
+    {
+      H_next[i] = rhs[i];
+    }
+}
 
+void diff_scheme_solver::print_H ()
+{
+  for (int i = 0; i < m; ++i)
+    {
+      printf ("H[%d] = %e\n", i, H_current[i]);
+    }
+  printf ("----------\n");
+}
 
-
-
+void diff_scheme_solver::print_V()
+{
+  for (int i = 0; i < m + 1; ++i)
+    {
+      printf ("V[%d] = %e\n", i, V_current[i]);
+    }
+  printf ("----------\n");
+}
 
 
 
