@@ -58,12 +58,12 @@ public:
 
   void solve_system ();
 
-  void print_H ();
-  void print_V ();
+  void print_H (int iter);
+  void print_V (int iter);
 
   void calculate_step (int iter);
 
-  void fill_debug ();
+  void fill_debug (int iter);
 };
 
 #endif // DIFF_SCHEME_SOLVER_H

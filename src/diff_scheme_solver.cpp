@@ -5,7 +5,7 @@
 diff_scheme_solver::diff_scheme_solver ()
 {
   min_x = 0;
-  max_x = 10;
+  max_x = 1;
 
   min_t = 0;
   max_t = 1;
@@ -15,7 +15,7 @@ diff_scheme_solver::diff_scheme_solver ()
 
   tau = 0;
   h = 0;
-  gamma = 0;
+  gamma = 0.25;
 
   mu = 0;
 }
@@ -75,7 +75,7 @@ void diff_scheme_solver::init (int n_arg, int m_arg, double mu_arg)
 
   h = (max_x - min_x) / m;
   tau = (max_t - min_t) / n;
-  gamma = tau / h;
+  gamma = 0.25;
 
   mu = mu_arg;
 
@@ -99,8 +99,8 @@ void diff_scheme_solver::init (int n_arg, int m_arg, double mu_arg)
   // init first layer
   for (int i = 0; i < m; ++i)
     {
-      H_current[i] = ro_0 (min_x + h / 2 + i * h);
-      V_current[i] = u_0 (min_x + i * h);
+      H_current[i] = h_init (min_x + h / 2 + i * h);
+      V_current[i] = v_init (min_x + i * h);
     }
   V_current[m] = 0;
 }
@@ -119,9 +119,9 @@ void diff_scheme_solver::build_first_system ()
 {
   for (int i = 0; i < m; ++i)
     {
-      left[i] = -gamma * 0.5 * (V_current[i] + fabs (V_current[i]));
-      mid[i] = 1 + gamma * 0.5 * (V_current[i + 1] + fabs (V_current[i + 1]) - V_current[i] + fabs (V_current[i]));
-      right[i] = gamma * 0.5 * (V_current[i + 1] - fabs (V_current[i + 1]));
+      left[i] = -tau / h * 0.5 * (V_current[i] + fabs (V_current[i]));
+      mid[i] = 1 + tau / h * 0.5 * (V_current[i + 1] + fabs (V_current[i + 1]) - V_current[i] + fabs (V_current[i]));
+      right[i] = tau / h * 0.5 * (V_current[i + 1] - fabs (V_current[i + 1]));
 
       rhs[i] = H_current[i] + tau * debug_vector1[i];
     }
@@ -134,7 +134,7 @@ void diff_scheme_solver::build_second_system ()
   right[0] = 0;
   rhs[0] = 0;
 
-  for (int i = 1; i < m - 1; ++i)
+  for (int i = 1; i < m; ++i)
     {
       double C = 0.5 * (H_next[i] + H_next[i - 1]);
 
@@ -149,17 +149,17 @@ void diff_scheme_solver::build_second_system ()
         {
           double D = gamma * (pow(fabs (H_next[i]), gamma - 1) - pow(fabs (H_next[i - 1]), gamma - 1)) / (gamma - 1) / h;
 
-          left[i] = - 0.5 * C * (V_current[i] + fabs (V_current[i])) / h - mu / h / h;
-          mid[i] = C / tau + C * fabs (V_current[i]) / h + 2 * mu / h / h;
-          right[i] = 0.5 * C * (V_current[i] - fabs (V_current[i])) - mu / h / h;
-          rhs[i] = C * V_current[i] / tau - C * D + debug_vector2[i];
+          left[i] = - 0.5 * C * (V_current[i] + fabs (V_current[i])) * tau / h - mu * tau / h / h;
+          mid[i] = C  + C * fabs (V_current[i]) * tau / h + 2 * mu * tau / h / h;
+          right[i] = 0.5 * C * (V_current[i] - fabs (V_current[i])) * tau / h - mu * tau / h / h;
+          rhs[i] = C * V_current[i] * tau - C * D * tau + tau * debug_vector2[i];
         }
     }
 
-  left[m - 1] = 0;
-  mid[m - 1] = 1;
-  right[m - 1] = 0;
-  rhs[m - 1] = 0;
+  left[m] = 0;
+  mid[m] = 1;
+  right[m] = 0;
+  rhs[m] = 0;
 }
 
 void diff_scheme_solver::print_residual (int iter)
@@ -175,16 +175,16 @@ void diff_scheme_solver::print_residual (int iter)
 
   for (int i = 0; i < m; ++i)
     {
-      residual_H += (H_current[i] - ro (t, min_x + h / 2 + i * h)) *
-                    (H_current[i] - ro (t, min_x + h / 2 + i * h));
-      residual_V += (V_current[i] - u (t, min_x + i * h)) *
-                    (V_current[i] - u (t, min_x + i * h));
+      residual_H += (H_current[i] - rho (t, min_x + h / 2 + i * h)) *
+                    (H_current[i] - rho (t, min_x + h / 2 + i * h));
+      residual_V += (V_current[i] - velocity (t, min_x + i * h)) *
+                    (V_current[i] - velocity (t, min_x + i * h));
 
-      if (fabs (H_current[i] - ro (t, min_x + h / 2 + i * h)) > max_H)
-        max_H = fabs (H_current[i] - ro (t, min_x + h / 2 + i * h));
+      if (fabs (H_current[i] - rho (t, min_x + h / 2 + i * h)) > max_H)
+        max_H = fabs (H_current[i] - rho (t, min_x + h / 2 + i * h));
 
-      if (fabs (V_current[i] - u (t, min_x + i * h)) > max_V)
-        max_V = fabs (V_current[i] - u (t, min_x + i * h));
+      if (fabs (V_current[i] - velocity (t, min_x + i * h)) > max_V)
+        max_V = fabs (V_current[i] - velocity (t, min_x + i * h));
 
       if (i == 0 || i == m - 1)
         {
@@ -246,32 +246,33 @@ void diff_scheme_solver::solve_second_system ()
 {
   solve_system ();
 
-  for (int i = 0; i < m; ++i)
+  for (int i = 0; i < m + 1; ++i)
     {
       V_next[i] = rhs[i];
     }
 }
 
-void diff_scheme_solver::print_H ()
+void diff_scheme_solver::print_H (int iter)
 {
   for (int i = 0; i < m && i < 10; ++i)
     {
-      printf ("H[%d] = %e\n", i, H_current[i]);
+      printf ("H[%d] = %e %e\n", i, H_current[i], rho(iter * tau, min_x + h / 2 + i * h));
     }
   printf ("----------\n");
 }
 
-void diff_scheme_solver::print_V()
+void diff_scheme_solver::print_V(int iter)
 {
   for (int i = 0; i < m + 1 && i < 10; ++i)
     {
-      printf ("V[%d] = %e\n", i, V_current[i]);
+      printf ("V[%d] = %e %e\n", i, V_current[i], velocity (iter * tau, min_x + i * h));
     }
   printf ("----------\n");
 }
 
 void diff_scheme_solver::calculate_step (int iter)
 {
+
   build_first_system ();
   solve_first_system ();
 
@@ -280,16 +281,18 @@ void diff_scheme_solver::calculate_step (int iter)
 
   update_layer ();
   print_residual (iter);
+
+  fill_debug (iter);
 }
 
-void diff_scheme_solver::fill_debug ()
+void diff_scheme_solver::fill_debug (int iter)
 {
 
   for (int i = 0; i <= m; i++)
     {
       if (i < m)
-        debug_vector1[i] = f1 (min_x + i * h + h / 2, tau);
-      debug_vector2[i] = f2 (min_x + i * h, tau, mu, gamma);
+        debug_vector1[i] = f1 (min_x + i * h + h / 2, tau * iter);
+      debug_vector2[i] = f2 (min_x + i * h, tau * iter, mu, gamma);
     }
 }
 

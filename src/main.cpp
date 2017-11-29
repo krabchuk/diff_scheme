@@ -31,9 +31,14 @@ int main(int argc, char *argv [])
 
   solver.init (n, m, mu);
 
-  for (int i = 0; i < n; i++)
+  solver.fill_debug (0);
+  solver.print_residual (0);
+
+  for (int i = 1; i < n; i++)
     {
       solver.calculate_step (i);
+//      solver.print_H (i);
+//      solver.print_V (i);
     }
 
   return 0;
