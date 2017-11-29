@@ -10,6 +10,7 @@ SOURCES += \
 
 HEADERS += \
     src/cpp_headers.h \
-    src/diff_scheme_solver.h
+    src/diff_scheme_solver.h \
+    src/functions.h
 
 INCLUDEPATH += src

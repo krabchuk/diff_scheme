@@ -18,7 +18,9 @@ private:
 
   double tau;
   double h;
-  double gama;
+  double gamma;
+
+  double mu;
 
   std::vector <double> H_current;
   std::vector <double> H_next;
@@ -30,6 +32,9 @@ private:
   std::vector <double> mid;
   std::vector <double> right;
   std::vector <double> rhs;
+
+  std::vector <double> debug_vector1;
+  std::vector <double> debug_vector2;
 public:
   diff_scheme_solver();
   ~diff_scheme_solver ();
@@ -40,19 +45,25 @@ public:
   double ro (double t, double x);
   double u (double t, double x);
 
-  void init (int n_arg, int m_arg);
+  void init (int n_arg, int m_arg, double mu_arg);
   void build_first_system ();
+  void build_second_system ();
 
   void update_layer ();
 
   void print_residual (int iter);
 
   void solve_first_system ();
+  void solve_second_system ();
 
   void solve_system ();
 
   void print_H ();
   void print_V ();
+
+  void calculate_step (int iter);
+
+  void fill_debug ();
 };
 
 #endif // DIFF_SCHEME_SOLVER_H
