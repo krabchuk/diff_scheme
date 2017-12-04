@@ -56,7 +56,7 @@ public:
   void solve_first_system ();
   void solve_second_system ();
 
-  void solve_system ();
+  void solve_system (int size);
 
   void print_H (int iter);
   void print_V (int iter);

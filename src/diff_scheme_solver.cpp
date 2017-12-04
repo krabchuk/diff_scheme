@@ -15,7 +15,7 @@ diff_scheme_solver::diff_scheme_solver ()
 
   tau = 0;
   h = 0;
-  gamma = 0.25;
+  gamma = 1.4;
 
   mu = 0;
 }
@@ -75,7 +75,7 @@ void diff_scheme_solver::init (int n_arg, int m_arg, double mu_arg)
 
   h = (max_x - min_x) / m;
   tau = (max_t - min_t) / n;
-  gamma = 0.25;
+  gamma = 1.4;
 
   mu = mu_arg;
 
@@ -86,15 +86,19 @@ void diff_scheme_solver::init (int n_arg, int m_arg, double mu_arg)
   V_current.resize (m + 1);
   V_next.resize (m + 1);
 
-  left.resize (m);
-  mid.resize (m);
-  right.resize (m);
-  rhs.resize (m);
+  left.resize (m + 1);
+  mid.resize (m + 1);
+  right.resize (m + 1);
+  rhs.resize (m + 1);
 
   debug_vector1.resize (m);
   debug_vector2.resize (m + 1);
-//  for (int i = 0; i < m; ++i)
-//    debug_vector[i] = 0;
+  for (int i = 0; i < m; ++i)
+    {
+      debug_vector1[i] = 0;
+      debug_vector2[i] = 0;
+    }
+  debug_vector2[m] = 0;
 
   // init first layer
   for (int i = 0; i < m; ++i)
@@ -147,10 +151,10 @@ void diff_scheme_solver::build_second_system ()
         }
       else
         {
-          double D = gamma * (pow(fabs (H_next[i]), gamma - 1) - pow(fabs (H_next[i - 1]), gamma - 1)) / (gamma - 1) / h;
+          double D = gamma * (pow(H_next[i], gamma - 1) - pow(H_next[i - 1], gamma - 1)) / (gamma - 1) / h;
 
           left[i] = - 0.5 * C * (V_current[i] + fabs (V_current[i])) * tau / h - mu * tau / h / h;
-          mid[i] = C  + C * fabs (V_current[i]) * tau / h + 2 * mu * tau / h / h;
+          mid[i] = C * tau  + C * fabs (V_current[i]) * tau / h + 2 * mu * tau / h / h;
           right[i] = 0.5 * C * (V_current[i] - fabs (V_current[i])) * tau / h - mu * tau / h / h;
           rhs[i] = C * V_current[i] * tau - C * D * tau + tau * debug_vector2[i];
         }
@@ -210,12 +214,12 @@ void diff_scheme_solver::print_residual (int iter)
           sqrt (sqrt (residual_H) + 0.5 * border_H), sqrt (sqrt (residual_H) + 0.5 * border_H));
 }
 
-void diff_scheme_solver::solve_system ()
+void diff_scheme_solver::solve_system (int size)
 {
   // Solution appear in rhs
 
   // Forward
-  for (int i = 0; i < m - 1; ++i)
+  for (int i = 0; i < size - 1; ++i)
     {
       right[i] /= mid[i];
       rhs[i] /= mid[i];
@@ -225,8 +229,8 @@ void diff_scheme_solver::solve_system ()
     }
 
   // Back
-  rhs[m - 1] /= mid[m - 1];
-  for (int i = m - 2; i >= 0; --i)
+  rhs[size - 1] /= mid[size - 1];
+  for (int i = size - 2; i >= 0; --i)
     {
       rhs[i] -= rhs[i + 1] * right[i];
     }
@@ -234,7 +238,7 @@ void diff_scheme_solver::solve_system ()
 
 void diff_scheme_solver::solve_first_system ()
 {
-  solve_system ();
+  solve_system (m);
 
   for (int i = 0; i < m; ++i)
     {
@@ -244,7 +248,7 @@ void diff_scheme_solver::solve_first_system ()
 
 void diff_scheme_solver::solve_second_system ()
 {
-  solve_system ();
+  solve_system (m + 1);
 
   for (int i = 0; i < m + 1; ++i)
     {
